@@ -1,4 +1,4 @@
-import { apiBase, oidcAuthority, oidcAuthorizationEndpoint, oidcClientId, oidcScopes } from './config';
+import { getRuntimeConfig } from './config';
 
 const tokenKey = 'daily-budget-token';
 const verifierKey = 'daily-budget-pkce-verifier';
@@ -20,6 +20,7 @@ export async function apiFetch<T>(path: string, options: RequestInit = {}): Prom
   const headers = new Headers(options.headers);
   headers.set('Content-Type', 'application/json');
   if (token) headers.set('Authorization', `Bearer ${token}`);
+  const { apiBase } = await getRuntimeConfig();
   const response = await fetch(`${apiBase}${path}`, { ...options, headers });
   if (!response.ok) {
     throw new Error(await response.text() || response.statusText);
@@ -29,13 +30,14 @@ export async function apiFetch<T>(path: string, options: RequestInit = {}): Prom
 }
 
 export async function beginOidcLogin() {
+  const { oidcAuthority, oidcAuthorizationEndpoint, oidcClientId, oidcScopes } = await getRuntimeConfig();
   if (!oidcAuthority || !oidcClientId) {
-    throw new Error('OIDC is not configured. Set VITE_OIDC_AUTHORITY and VITE_OIDC_CLIENT_ID.');
+    throw new Error('OIDC is not configured. Set OIDC_AUTHORITY and OIDC_CLIENT_ID.');
   }
   const verifier = randomString(64);
   sessionStorage.setItem(verifierKey, verifier);
   const challenge = await sha256Base64Url(verifier);
-  const authorizationEndpoint = oidcAuthorizationEndpoint || await discoverAuthorizationEndpoint();
+  const authorizationEndpoint = oidcAuthorizationEndpoint || await discoverAuthorizationEndpoint(oidcAuthority);
   const url = new URL(authorizationEndpoint);
   url.searchParams.set('client_id', oidcClientId);
   url.searchParams.set('redirect_uri', `${location.origin}/auth/callback`);
@@ -57,7 +59,7 @@ export async function completeOidcLogin(code: string) {
   sessionStorage.removeItem(verifierKey);
 }
 
-async function discoverAuthorizationEndpoint(): Promise<string> {
+async function discoverAuthorizationEndpoint(oidcAuthority: string): Promise<string> {
   const response = await fetch(`${oidcAuthority.replace(/\/$/, '')}/.well-known/openid-configuration`);
   if (!response.ok) throw new Error('Could not load OIDC discovery document.');
   const discovery = await response.json() as { authorization_endpoint?: string };

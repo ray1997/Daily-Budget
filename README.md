@@ -56,7 +56,7 @@ Copy `.env.example` to `.env` for Docker Compose. Important values:
 | `OIDC_CLIENT_SECRET` | Optional secret for confidential clients |
 | `JWT_SIGNING_KEY` | Local app session signing key; use at least 32 characters |
 | `FRONTEND_ORIGIN` | CORS origin allowed by the backend |
-| `VITE_API_BASE` | API URL used by the frontend |
+| `API_BASE` | Runtime API URL used by the frontend container |
 
 The OIDC redirect URI is:
 
@@ -70,7 +70,7 @@ The OIDC redirect URI is:
 The repository includes separate production Dockerfiles for each service:
 
 - `backend/Dockerfile` follows the ASP.NET multi-stage pattern: `aspnet:10.0` runtime base, `sdk:10.0` restore/build/publish stages, `BUILD_CONFIGURATION` build arg, port `5000`, and `dotnet DailyBudget.Api.dll` entrypoint.
-- `frontend/Dockerfile` builds the SvelteKit static bundle with Node, injects `VITE_*` build arguments, and serves the generated site with nginx on port `80`.
+- `frontend/Dockerfile` builds the SvelteKit static bundle with Node and serves it with nginx on port `80`; `frontend/docker-entrypoint.sh` writes `/config.json` from runtime environment variables so the same frontend image can be reused across environments.
 
 ## Docker Compose
 

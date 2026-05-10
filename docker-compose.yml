@@ -25,12 +25,12 @@ services:
   frontend:
     build:
       context: ./frontend
-      args:
-        VITE_API_BASE: ${VITE_API_BASE:-http://localhost:5000}
-        VITE_OIDC_AUTHORITY: ${OIDC_AUTHORITY:-}
-        VITE_OIDC_CLIENT_ID: ${OIDC_CLIENT_ID:-}
-        VITE_OIDC_AUTHORIZATION_ENDPOINT: ${OIDC_AUTHORIZATION_ENDPOINT:-}
-        VITE_OIDC_SCOPES: ${OIDC_SCOPES:-openid profile email}
+    environment:
+      API_BASE: ${API_BASE:-http://localhost:5000}
+      OIDC_AUTHORITY: ${OIDC_AUTHORITY:-}
+      OIDC_CLIENT_ID: ${OIDC_CLIENT_ID:-}
+      OIDC_AUTHORIZATION_ENDPOINT: ${OIDC_AUTHORIZATION_ENDPOINT:-}
+      OIDC_SCOPES: ${OIDC_SCOPES:-openid profile email}
     ports:
       - "5173:80"
     depends_on:
