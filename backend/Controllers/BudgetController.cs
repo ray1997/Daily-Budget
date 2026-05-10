@@ -18,7 +18,7 @@ public sealed class BudgetController(BudgetDbContext db, BudgetCalculator calcul
     public async Task<ActionResult<DashboardDto>> Dashboard(CancellationToken cancellationToken)
     {
         var userId = CurrentUserId();
-        var cycle = await ActiveCycle(userId, cancellationToken);
+        var cycle = await ActiveCycle(userId).FirstOrDefaultAsync(cancellationToken);
         var transactions = cycle is null
             ? []
             : await db.Transactions.Where(t => t.UserId == userId && t.BudgetCycleId == cycle.Id).ToListAsync(cancellationToken);
@@ -52,7 +52,7 @@ public sealed class BudgetController(BudgetDbContext db, BudgetCalculator calcul
     public async Task<ActionResult<TransactionDto>> AddTransaction(TransactionRequest request, CancellationToken cancellationToken)
     {
         var userId = CurrentUserId();
-        var cycle = await ActiveCycle(userId, cancellationToken);
+        var cycle = await ActiveCycle(userId).FirstOrDefaultAsync(cancellationToken);
         if (cycle is null) return BadRequest("Start a budget cycle before adding transactions.");
         var transaction = new Transaction
         {
@@ -95,12 +95,7 @@ public sealed class BudgetController(BudgetDbContext db, BudgetCalculator calcul
     }
 
     private Guid CurrentUserId() => Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier) ?? User.FindFirstValue("sub") ?? throw new InvalidOperationException("Missing user id."));
-
-    private async Task<BudgetCycle?> ActiveCycle(Guid userId, CancellationToken cancellationToken)
-    {
-        var cycles = await db.BudgetCycles.Where(c => c.UserId == userId && c.IsActive).ToListAsync(cancellationToken);
-        return cycles.OrderByDescending(c => c.CreatedAt).FirstOrDefault();
-    }
+    private IQueryable<BudgetCycle> ActiveCycle(Guid userId) => db.BudgetCycles.Where(c => c.UserId == userId && c.IsActive).OrderByDescending(c => c.CreatedAt);
     private IQueryable<HolidayOverride> UserHolidays(Guid userId) => db.HolidayOverrides.Where(h => h.UserId == userId);
     private static TransactionDto ToDto(Transaction t) => new(t.Id, t.Amount, t.Note, t.Timestamp, t.TransactionDate, t.Type);
 }
