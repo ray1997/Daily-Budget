@@ -1,0 +1,41 @@
+services:
+  backend:
+    build:
+      context: ./backend
+      args:
+        BUILD_CONFIGURATION: ${BUILD_CONFIGURATION:-Release}
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      FrontendOrigin: ${FRONTEND_ORIGIN:-http://localhost:5173}
+      ConnectionStrings__Default: Data Source=/data/daily-budget.db
+      Jwt__Issuer: ${JWT_ISSUER:-DailyBudget}
+      Jwt__Audience: ${JWT_AUDIENCE:-DailyBudgetFrontend}
+      Jwt__SigningKey: ${JWT_SIGNING_KEY:-replace-with-at-least-32-characters-for-production}
+      Jwt__SessionDays: ${JWT_SESSION_DAYS:-14}
+      Oidc__Authority: ${OIDC_AUTHORITY:-}
+      Oidc__ClientId: ${OIDC_CLIENT_ID:-}
+      Oidc__ClientSecret: ${OIDC_CLIENT_SECRET:-}
+      Oidc__Scopes: ${OIDC_SCOPES:-openid profile email}
+    ports:
+      - "5000:5000"
+    volumes:
+      - daily-budget-data:/data
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend
+    environment:
+      API_BASE: ${API_BASE:-http://localhost:5000}
+      OIDC_AUTHORITY: ${OIDC_AUTHORITY:-}
+      OIDC_CLIENT_ID: ${OIDC_CLIENT_ID:-}
+      OIDC_AUTHORIZATION_ENDPOINT: ${OIDC_AUTHORIZATION_ENDPOINT:-}
+      OIDC_SCOPES: ${OIDC_SCOPES:-openid profile email}
+    ports:
+      - "5173:80"
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+volumes:
+  daily-budget-data:
